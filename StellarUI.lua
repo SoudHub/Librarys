@@ -1,6 +1,6 @@
 -- StellarUI Library
 -- Por: [Seu Nome]
--- Versão: 1.0
+-- Versão: 2.0
 
 local StellarUI = {}
 StellarUI.__index = StellarUI
@@ -9,8 +9,8 @@ StellarUI.__index = StellarUI
 StellarUI.Settings = {
     ActiveMenuKey = "M",
     ShowMouse = true,
-    DefaultBackground = Color3.fromRGB(25, 25, 35),
-    Theme = "Dark"
+    DefaultBackground = Color3.fromRGB(0, 0, 0),
+    Theme = "Black"
 }
 
 -- Cache de instâncias
@@ -41,21 +41,137 @@ end
 
 -- Tema de cores
 StellarUI.Themes = {
+    Black = {
+        Background = Color3.fromRGB(0, 0, 0),
+        Secondary = Color3.fromRGB(15, 15, 15),
+        Accent = Color3.fromRGB(0, 255, 0),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextSecondary = Color3.fromRGB(200, 200, 200),
+        Border = Color3.fromRGB(40, 40, 40)
+    },
     Dark = {
         Background = Color3.fromRGB(25, 25, 35),
         Secondary = Color3.fromRGB(35, 35, 45),
         Accent = Color3.fromRGB(0, 170, 255),
         Text = Color3.fromRGB(255, 255, 255),
-        TextSecondary = Color3.fromRGB(200, 200, 200)
-    },
-    Light = {
-        Background = Color3.fromRGB(240, 240, 240),
-        Secondary = Color3.fromRGB(220, 220, 220),
-        Accent = Color3.fromRGB(0, 120, 215),
-        Text = Color3.fromRGB(0, 0, 0),
-        TextSecondary = Color3.fromRGB(80, 80, 80)
+        TextSecondary = Color3.fromRGB(200, 200, 200),
+        Border = Color3.fromRGB(60, 60, 80)
     }
 }
+
+-- Função para criar cantos arredondados
+function StellarUI:ApplyCornerRadius(element, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius)
+    corner.Parent = element
+    return corner
+end
+
+-- Função para criar gradiente
+function StellarUI:ApplyGradient(element, colors)
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new(colors)
+    gradient.Rotation = 90
+    gradient.Parent = element
+    return gradient
+end
+
+-- Sistema de arrastar suave
+function StellarUI:MakeDraggable(frame)
+    local dragToggle = nil
+    local dragSpeed = 0.25
+    local dragStart = nil
+    local startPos = nil
+    
+    local function updateInput(input)
+        local delta = input.Position - dragStart
+        local position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+        
+        -- Aplicar suavização no movimento
+        local tweenInfo = TweenInfo.new(dragSpeed, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = TweenService:Create(frame, tweenInfo, {Position = position})
+        tween:Play()
+    end
+    
+    frame.InputBegan:Connect(function(input)
+        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+            dragToggle = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragToggle = false
+                end
+            end)
+        end
+    end)
+    
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            if dragToggle then
+                updateInput(input)
+            end
+        end
+    end)
+end
+
+-- Animação suave para mostrar estatísticas
+function StellarUI:AnimateStatsShow()
+    local stats = self.PlayerStatsFrame
+    stats.Visible = true
+    
+    -- Reset da transparência
+    for _, child in ipairs(stats:GetChildren()) do
+        if child:IsA("TextLabel") then
+            child.TextTransparency = 1
+        end
+    end
+    
+    stats.BackgroundTransparency = 1
+    
+    -- Animação de fade in
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    
+    local backgroundTween = TweenService:Create(stats, tweenInfo, {BackgroundTransparency = 0.1})
+    backgroundTween:Play()
+    
+    -- Animação sequencial dos labels
+    for i, child in ipairs(stats:GetChildren()) do
+        if child:IsA("TextLabel") then
+            wait(0.05) -- Delay entre cada linha
+            local labelTween = TweenService:Create(child, tweenInfo, {TextTransparency = 0})
+            labelTween:Play()
+        end
+    end
+end
+
+-- Animação suave para esconder estatísticas
+function StellarUI:AnimateStatsHide()
+    local stats = self.PlayerStatsFrame
+    
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    
+    -- Animação de fade out para todos os elementos
+    local backgroundTween = TweenService:Create(stats, tweenInfo, {BackgroundTransparency = 1})
+    
+    for _, child in ipairs(stats:GetChildren()) do
+        if child:IsA("TextLabel") then
+            local labelTween = TweenService:Create(child, tweenInfo, {TextTransparency = 1})
+            labelTween:Play()
+        end
+    end
+    
+    backgroundTween:Play()
+    
+    -- Esperar a animação terminar antes de esconder
+    wait(0.2)
+    stats.Visible = false
+end
 
 -- Inicializar a library
 function StellarUI:Init()
@@ -78,6 +194,9 @@ function StellarUI:Init()
         Visible = false
     })
     
+    -- Aplicar bordas arredondadas
+    self:ApplyCornerRadius(self.MainFrame, 12)
+    
     -- Background personalizável
     self.Background = self:CreateElement("Frame", {
         Name = "Background",
@@ -86,6 +205,8 @@ function StellarUI:Init()
         BorderSizePixel = 0,
         ZIndex = 0
     })
+    
+    self:ApplyCornerRadius(self.Background, 12)
     
     self.BackgroundImage = self:CreateElement("ImageLabel", {
         Name = "BackgroundImage",
@@ -96,13 +217,17 @@ function StellarUI:Init()
         Visible = false
     })
     
-    -- Header
+    self:ApplyCornerRadius(self.BackgroundImage, 12)
+    
+    -- Header (área de arrasto)
     self.Header = self:CreateElement("Frame", {
         Name = "Header",
         Size = UDim2.new(1, 0, 0, 40),
         BackgroundColor3 = self.Themes[self.Settings.Theme].Secondary,
         BorderSizePixel = 0
     })
+    
+    self:ApplyCornerRadius(self.Header, 12)
     
     self.Title = self:CreateElement("TextLabel", {
         Name = "Title",
@@ -117,14 +242,16 @@ function StellarUI:Init()
     
     self.CloseButton = self:CreateElement("TextButton", {
         Name = "CloseButton",
-        Size = UDim2.new(0, 40, 1, 0),
-        Position = UDim2.new(1, -40, 0, 0),
+        Size = UDim2.new(0, 30, 0, 30),
+        Position = UDim2.new(1, -35, 0.5, -15),
         BackgroundColor3 = Color3.fromRGB(255, 60, 60),
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Text = "X",
         TextSize = 14,
         Font = Enum.Font.GothamBold
     })
+    
+    self:ApplyCornerRadius(self.CloseButton, 15)
     
     -- Player Info Section
     self.PlayerSection = self:CreateElement("Frame", {
@@ -135,6 +262,8 @@ function StellarUI:Init()
         BorderSizePixel = 0
     })
     
+    self:ApplyCornerRadius(self.PlayerSection, 8)
+    
     self.PlayerIcon = self:CreateElement("ImageLabel", {
         Name = "PlayerIcon",
         Size = UDim2.new(0, 80, 0, 80),
@@ -143,6 +272,8 @@ function StellarUI:Init()
         BorderSizePixel = 0,
         Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LocalPlayer.UserId .. "&width=150&height=150&format=png"
     })
+    
+    self:ApplyCornerRadius(self.PlayerIcon, 40)
     
     self.PlayerName = self:CreateElement("TextLabel", {
         Name = "PlayerName",
@@ -157,12 +288,15 @@ function StellarUI:Init()
     
     self.PlayerStatsFrame = self:CreateElement("Frame", {
         Name = "PlayerStatsFrame",
-        Size = UDim2.new(1, -20, 0, 150),
-        Position = UDim2.new(0, 10, 0, 130),
+        Size = UDim2.new(1, -10, 0, 150),
+        Position = UDim2.new(0, 5, 0, 130),
         BackgroundColor3 = self.Themes[self.Settings.Theme].Background,
+        BackgroundTransparency = 0.1,
         BorderSizePixel = 0,
         Visible = false
     })
+    
+    self:ApplyCornerRadius(self.PlayerStatsFrame, 8)
     
     -- Content Area
     self.ContentFrame = self:CreateElement("Frame", {
@@ -207,6 +341,9 @@ function StellarUI:Init()
     self.MainFrame.Parent = self.ScreenGui
     self.ScreenGui.Parent = game:GetService("CoreGui")
     
+    -- Tornar arrastável
+    self:MakeDraggable(self.MainFrame)
+    
     -- Conectar eventos
     self.CloseButton.MouseButton1Click:Connect(function()
         self:ToggleUI()
@@ -237,10 +374,9 @@ function StellarUI:Init()
     print("StellarUI inicializada com sucesso! Pressione " .. self.Settings.ActiveMenuKey .. " para abrir/fechar.")
 end
 
--- Mostrar estatísticas do player
+-- Mostrar estatísticas do player com animação
 function StellarUI:ShowPlayerStats()
     local stats = self.PlayerStatsFrame
-    stats.Visible = true
     
     -- Limpar stats anteriores
     for _, child in ipairs(stats:GetChildren()) do
@@ -253,7 +389,7 @@ function StellarUI:ShowPlayerStats()
     local accountAge = math.floor((os.time() - LocalPlayer.AccountAge * 86400) / 86400)
     
     local statLabels = {
-        {Text = "Estatísticas:", Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 0, 0, 5), Font = Enum.Font.GothamBold},
+        {Text = "Estatísticas:", Size = UDim2.new(1, 0, 0, 20), Position = UDim2.new(0, 5, 0, 5), Font = Enum.Font.GothamBold},
         {Text = "Nome: " .. LocalPlayer.Name, Size = UDim2.new(1, 0, 0, 15), Position = UDim2.new(0, 5, 0, 30)},
         {Text = "ID: " .. LocalPlayer.UserId, Size = UDim2.new(1, 0, 0, 15), Position = UDim2.new(0, 5, 0, 50)},
         {Text = "Idade da Conta: " .. accountAge .. " dias", Size = UDim2.new(1, 0, 0, 15), Position = UDim2.new(0, 5, 0, 70)},
@@ -268,17 +404,21 @@ function StellarUI:ShowPlayerStats()
             BackgroundTransparency = 1,
             Text = stat.Text,
             TextColor3 = self.Themes[self.Settings.Theme].Text,
+            TextTransparency = 1, -- Começa transparente
             TextSize = 12,
             Font = stat.Font or Enum.Font.Gotham,
             TextXAlignment = Enum.TextXAlignment.Left
         })
         label.Parent = stats
     end
+    
+    -- Mostrar com animação
+    self:AnimateStatsShow()
 end
 
--- Esconder estatísticas do player
+-- Esconder estatísticas do player com animação
 function StellarUI:HidePlayerStats()
-    self.PlayerStatsFrame.Visible = false
+    self:AnimateStatsHide()
 end
 
 -- Alternar UI
@@ -335,6 +475,8 @@ function StellarUI:CreateTab(name)
         Font = Enum.Font.Gotham
     })
     
+    self:ApplyCornerRadius(tabButton, 6)
+    
     -- Conteúdo da aba
     local tabContent = self:CreateElement("ScrollingFrame", {
         Name = "TabContent" .. tabId,
@@ -348,10 +490,17 @@ function StellarUI:CreateTab(name)
     
     local uiListLayout = self:CreateElement("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 5)
+        Padding = UDim.new(0, 8)
+    })
+    
+    local padding = self:CreateElement("UIPadding", {
+        PaddingTop = UDim.new(0, 5),
+        PaddingLeft = UDim.new(0, 5),
+        PaddingRight = UDim.new(0, 5)
     })
     
     uiListLayout.Parent = tabContent
+    padding.Parent = tabContent
     tabContent.Parent = self.ContentFrame
     
     -- Evento do botão da aba
@@ -375,14 +524,27 @@ end
 function StellarUI:CreateButton(tab, text, callback)
     local button = self:CreateElement("TextButton", {
         Name = "Button_" .. text,
-        Size = UDim2.new(1, -20, 0, 30),
-        Position = UDim2.new(0, 10, 0, #tab.Elements * 35),
+        Size = UDim2.new(1, 0, 0, 35),
         BackgroundColor3 = self.Themes[self.Settings.Theme].Accent,
         TextColor3 = Color3.fromRGB(255, 255, 255),
         Text = text,
         TextSize = 14,
-        Font = Enum.Font.Gotham
+        Font = Enum.Font.Gotham,
+        AutoButtonColor = false
     })
+    
+    self:ApplyCornerRadius(button, 8)
+    
+    -- Efeitos hover
+    button.MouseEnter:Connect(function()
+        local tween = TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 255, 50)})
+        tween:Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        local tween = TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = self.Themes[self.Settings.Theme].Accent})
+        tween:Play()
+    end)
     
     button.MouseButton1Click:Connect(callback)
     button.Parent = self.ContentFrame:FindFirstChild("TabContent" .. tab.Id)
@@ -391,7 +553,7 @@ function StellarUI:CreateButton(tab, text, callback)
     -- Atualizar tamanho do canvas
     local content = self.ContentFrame:FindFirstChild("TabContent" .. tab.Id)
     if content then
-        content.CanvasSize = UDim2.new(0, 0, 0, #tab.Elements * 35)
+        content.CanvasSize = UDim2.new(0, 0, 0, #tab.Elements * 43)
     end
     
     return button
@@ -401,8 +563,7 @@ end
 function StellarUI:CreateLabel(tab, text)
     local label = self:CreateElement("TextLabel", {
         Name = "Label_" .. text,
-        Size = UDim2.new(1, -20, 0, 20),
-        Position = UDim2.new(0, 10, 0, #tab.Elements * 25),
+        Size = UDim2.new(1, 0, 0, 25),
         BackgroundTransparency = 1,
         TextColor3 = self.Themes[self.Settings.Theme].Text,
         Text = text,
@@ -416,7 +577,7 @@ function StellarUI:CreateLabel(tab, text)
     
     local content = self.ContentFrame:FindFirstChild("TabContent" .. tab.Id)
     if content then
-        content.CanvasSize = UDim2.new(0, 0, 0, #tab.Elements * 25)
+        content.CanvasSize = UDim2.new(0, 0, 0, #tab.Elements * 33)
     end
     
     return label
@@ -428,8 +589,7 @@ function StellarUI:CreateToggle(tab, text, default, callback)
     
     local toggleFrame = self:CreateElement("Frame", {
         Name = "Toggle_" .. text,
-        Size = UDim2.new(1, -20, 0, 25),
-        Position = UDim2.new(0, 10, 0, #tab.Elements * 30),
+        Size = UDim2.new(1, 0, 0, 30),
         BackgroundTransparency = 1
     })
     
@@ -446,26 +606,53 @@ function StellarUI:CreateToggle(tab, text, default, callback)
     
     local toggleButton = self:CreateElement("TextButton", {
         Name = "ToggleButton",
-        Size = UDim2.new(0, 40, 0, 20),
-        Position = UDim2.new(1, -40, 0, 2),
+        Size = UDim2.new(0, 50, 0, 25),
+        Position = UDim2.new(1, -50, 0, 2),
         BackgroundColor3 = toggleState and self.Themes[self.Settings.Theme].Accent or self.Themes[self.Settings.Theme].Secondary,
         Text = "",
-        TextSize = 0
+        TextSize = 0,
+        AutoButtonColor = false
     })
+    
+    self:ApplyCornerRadius(toggleButton, 12)
+    
+    -- Indicador interno do toggle
+    local toggleIndicator = self:CreateElement("Frame", {
+        Name = "Indicator",
+        Size = UDim2.new(0, 21, 0, 21),
+        Position = UDim2.new(0, toggleState and 27 or 2, 0, 2),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BorderSizePixel = 0
+    })
+    
+    self:ApplyCornerRadius(toggleIndicator, 10)
     
     label.Parent = toggleFrame
     toggleButton.Parent = toggleFrame
+    toggleIndicator.Parent = toggleButton
     toggleFrame.Parent = self.ContentFrame:FindFirstChild("TabContent" .. tab.Id)
     table.insert(tab.Elements, toggleFrame)
     
     local content = self.ContentFrame:FindFirstChild("TabContent" .. tab.Id)
     if content then
-        content.CanvasSize = UDim2.new(0, 0, 0, #tab.Elements * 30)
+        content.CanvasSize = UDim2.new(0, 0, 0, #tab.Elements * 38)
     end
     
     toggleButton.MouseButton1Click:Connect(function()
         toggleState = not toggleState
-        toggleButton.BackgroundColor3 = toggleState and self.Themes[self.Settings.Theme].Accent or self.Themes[self.Settings.Theme].Secondary
+        
+        local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local backgroundTween = TweenService:Create(toggleButton, tweenInfo, {
+            BackgroundColor3 = toggleState and self.Themes[self.Settings.Theme].Accent or self.Themes[self.Settings.Theme].Secondary
+        })
+        
+        local indicatorTween = TweenService:Create(toggleIndicator, tweenInfo, {
+            Position = UDim2.new(0, toggleState and 27 or 2, 0, 2)
+        })
+        
+        backgroundTween:Play()
+        indicatorTween:Play()
+        
         callback(toggleState)
     end)
     
@@ -473,6 +660,7 @@ function StellarUI:CreateToggle(tab, text, default, callback)
         Set = function(state)
             toggleState = state
             toggleButton.BackgroundColor3 = toggleState and self.Themes[self.Settings.Theme].Accent or self.Themes[self.Settings.Theme].Secondary
+            toggleIndicator.Position = UDim2.new(0, toggleState and 27 or 2, 0, 2)
         end,
         Get = function()
             return toggleState
