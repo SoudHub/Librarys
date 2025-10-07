@@ -1,6 +1,6 @@
 -- StellarUI Library
--- Por: [Seu Nome]
--- Versão: 2.0
+-- Por: [Pato_Soud]
+-- Versão: 0.1
 
 local StellarUI = {}
 StellarUI.__index = StellarUI
