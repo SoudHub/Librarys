@@ -248,37 +248,27 @@ local function AddThemeObject(Object, Type)
 	return Object
 end    
 
-local function SetTheme()
+function OrionLib:SetTheme()
     for themeType, objects in pairs(OrionLib.ThemeObjects) do
-        for i, object in ipairs(objects) do
-            -- Verificar se o objeto ainda existe e é válido
+        for _, object in ipairs(objects) do
             if object and object.Parent then
                 local property = ReturnProperty(object)
                 if object[property] then
-                    -- Aplicar a nova cor do tema
                     object[property] = OrionLib.Themes[OrionLib.SelectedTheme][themeType]
                 end
-            else
-                table.remove(objects, i)
             end
         end    
     end
+    
+    -- Atualizar também elementos específicos que podem não estar no ThemeObjects
+    if WindowTopBarLine then
+        WindowTopBarLine.BackgroundColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Stroke
+    end
 end
 
-local function ForceThemeUpdate()
-    -- Esta função força a atualização de todos os elementos
-    for themeType, objects in pairs(OrionLib.ThemeObjects or {}) do
-        for _, object in ipairs(objects) do
-            if object and object.Parent then
-                local success, property = pcall(function()
-                    return ReturnProperty(object)
-                end)
-                if success and property and OrionLib.Themes[OrionLib.SelectedTheme][themeType] then
-                    object[property] = OrionLib.Themes[OrionLib.SelectedTheme][themeType]
-                end
-            end
-        end
-    end
+-- Função para forçar atualização do tema
+function OrionLib:UpdateTheme()
+    self:SetTheme()
 end
 
 local function PackColor(Color)
@@ -2186,6 +2176,21 @@ end
 
 function OrionLib:Destroy()
 	Orion:Destroy()
+end
+
+function OrionLib:UpdateSpecificTheme(Type, Value)
+    OrionLib.Themes[OrionLib.SelectedTheme][Type] = Value
+    for _, object in ipairs(OrionLib.ThemeObjects[Type] or {}) do
+        if object and object.Parent then
+            local property = ReturnProperty(object)
+            if object[property] then
+                object[property] = Value
+            end
+        end
+    end
+    if Type == "Stroke" and WindowTopBarLine then
+        WindowTopBarLine.BackgroundColor3 = Value
+    end
 end
 
 return OrionLib
