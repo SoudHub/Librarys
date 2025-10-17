@@ -250,14 +250,15 @@ end
 local function SetTheme()
     for themeType, objects in pairs(OrionLib.ThemeObjects) do
         for _, object in ipairs(objects) do
-            if object and object.Parent then -- Verificar se o objeto ainda existe
+            if object and object.Parent then
                 local property = ReturnProperty(object)
-                if object[property] then -- Verificar se a propriedade existe
+                if object[property] then
                     object[property] = OrionLib.Themes[OrionLib.SelectedTheme][themeType]
                 end
             end
         end    
     end
+end
 
 local function PackColor(Color)
 	return {R = Color.R * 255, G = Color.G * 255, B = Color.B * 255}
