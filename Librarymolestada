@@ -721,20 +721,24 @@ userInputService.MouseIconEnabled = false
 		
 	end)
 
-	AddConnection(UserInputService.InputBegan, function(Input)
-		if Input.KeyCode == Enum.KeyCode.M then
-						if UIHidden then
-									MainWindow.Visible = true
-							buttonmodal.Modal = true
-				userInputService.MouseIconEnabled = true
-						elseif UIHidden == false then
-										MainWindow.Visible = false
-				userInputService.MouseIconEnabled = false
-							buttonmodal.Modal = false
-										WindowConfig.CloseCallback()
-						end
-		end
-	end)
+AddConnection(UserInputService.InputBegan, function(Input, gameProcessed)
+    if gameProcessed then return end
+    if Input.KeyCode == Enum.KeyCode.M then
+        UIHidden = not UIHidden
+        MainWindow.Visible = not UIHidden
+        buttonmodal.Modal = not UIHidden
+        userInputService.MouseIconEnabled = not UIHidden
+        
+        if UIHidden then
+            OrionLib:MakeNotification({
+                Name = "Interface Hidden",
+                Content = "Tap M to reopen the interface",
+                Time = 5
+            })
+            WindowConfig.CloseCallback()
+        end
+    end
+end)
 
 AddConnection(UserInputService.InputBegan, function(Input, gameProcessed)
 	if gameProcessed then return end
